@@ -23,8 +23,9 @@ NERSC provide their own implementation with minor modifications to the MLPerf HP
 Submitted on Cirrus: `/work/z04/z04/ebroadwa/benchmarks/deepcam/hpc/deepcam/src/deepCam`
 * Full dataset 
 * 64 GPU (16 node)
-* Global batch size **must** be 2048, therefore the local batch size = 32
+* Currently using local batch size = 1. BUT for NERSC-10: global batch size **must** be 2048, therefore the local batch size should be 32. 
 
 > Currently running at ~ 18 mins per epoch.\
-> Perlmutter reports benchmark time (time to 16 epochs) of 240 seconds on 1,024 A100s.\ 
+> Perlmutter reports benchmark time (time to 16 epochs) of 240 seconds on 1,024 A100s.\
 > 18 mins per epoch = 288 mins (4.8 hours) to 16 epochs on 64 V100s.  
+
