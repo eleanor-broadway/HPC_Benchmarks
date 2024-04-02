@@ -1,0 +1,5 @@
+Dataset     atoms   tasks   time(s)     
+nano    65k     64      15  
+micro   524k    512     16
+tiny    4.19M   4096    20
+small   33.6M   32768   26 
