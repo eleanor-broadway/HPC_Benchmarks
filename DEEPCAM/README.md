@@ -18,6 +18,27 @@ NERSC provide their own implementation with minor modifications to the MLPerf HP
 ##### Table 1. Showing results for Perlmutter GPU nodes: 1x AMD EPYC 7763 CPU and 4x NVIDIA 40GB A100 GPUs. Using 4x MPI tasks per node i.e. each with 1 GPU and 16 cores. Lammps v23 June 2022 + Kokkos. 
 
 
+# Setting up DeepCAM 
+
+After installing PyTorch, compile additional dependancies: 
+
+```bash 
+git clone https://github.com/mlperf/logging.git mlperf_logging
+pip install -e mlperf_logging
+
+conda install -c anaconda h5py
+```
+
+DeepCAM: 
+```bash 
+git clone https://github.com/mlcommons/hpc.git
+cd hpc/deepcam/src/deepCam 
+
+sbatch run_script.sh 
+```
+
+
+
 # Results: 
 
 Submitted on Cirrus: `/work/z04/z04/ebroadwa/benchmarks/deepcam/hpc/deepcam/src/deepCam`

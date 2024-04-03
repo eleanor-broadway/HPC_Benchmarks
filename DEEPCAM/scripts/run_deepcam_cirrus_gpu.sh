@@ -22,16 +22,14 @@ export OMPI_MCA_mpi_warn_on_fork=0
 
 nvidia-smi --loop=10 --filename=smi-${SLURM_JOBID}.txt &
 
-#the local batch size may be adjusted
-#under the constraint that the global batch size is fixed to 2048,
-#i.e. processes * local_batch_size = 2048.
-#for example: local_batch_size=$(( 2048 / ${SLURM_NTASKS} ))
 local_batch_size=1
 
 #other options within this script may be adjusted freely
 data_dir=/work/z04/shared/mlperf-hpc/deepcam/full/
 output_dir=/work/z04/z04/ebroadwa/benchmarks/deepcam/output/$SLURM_JOB_ID
 run_tag="${SLURM_JOB_NAME}-${SLURM_JOB_ID}"
+
+# Using options from NESRC-10 benchmark suite 
 
 time srun --ntasks=64 --tasks-per-node=4 python3 train.py \
     --gradient_accumulation_frequency 1 \
