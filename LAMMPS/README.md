@@ -11,8 +11,6 @@ This benchmark simulates the high-pressure BC8 phase of carbon using Spectral Ne
 ### Parallel decomposition: 
 LAMMPS uses a 3D spatial domain decomposition to distribute atoms amongst MPI processes. The default decomposition divides the simulated space into rectangular bricks. 
 
-<!-- LAMMPS will run correctly with any number of MPI processes but **better performance when the number of MPI processes is the product of three near-equal integers.** -->
-
 ## NERSC-10 Benchmark: 
 * Input files/batch scripts/Perlmutter outputs for 7 different problem sizes. 
 * The collection forms a weak scaling series where each step is 8 x bigger than the previous. 
@@ -25,11 +23,6 @@ LAMMPS uses a 3D spatial domain decomposition to distribute atoms amongst MPI pr
 | small (33.6M)    |       1    |      7.32     |    424     |
 | medium (268M)   |       8    |      58.6     |    405     |
 | reference (2.15B) |      32    |      453.     |    805     |
-| reference |      64    |      453.     |    445     |
-| reference |     128    |      453.     |    213     |
-| reference |     256    |      453.     |    130     |
-| reference |     512    |     453.      |     55     |
-| reference |    1024    |     453.      |     31*    |
 
 ##### Table 1. Showing results for Perlmutter GPU nodes: 1x AMD EPYC 7763 CPU and 4x NVIDIA 40GB A100 GPUs. Using 4x MPI tasks per node i.e. each with 1 GPU and 16 cores. Lammps v23 June 2022 + Kokkos. 
 
@@ -60,7 +53,7 @@ newton off = set Newton pairwise flag off (default for GPUs and required)
 
 
 ## ARCHER2 CPU: 
-Naive results (i.e copying Perlmutter's balance of 64 tasks-per-node with 2 cpus-per-task) and no repeats as of yet. 
+Naive results (i.e copying Perlmutter's balance of 64 tasks-per-node with 2 cpus-per-task) and no repeats. 
 
 
 <img src="results/gp_strong_a2_cpu_33.6Matoms_speedup.png" width="500"> 
@@ -77,27 +70,48 @@ Naive results (i.e copying Perlmutter's balance of 64 tasks-per-node with 2 cpus
 
 </br>
 
+Results show this suite of inputs is suitable for benchmarking LAMMPS on CPUs as they demonstrate good scaling and can be scaled appropriately.  
+
+</br>
+
+
 ## Cirrus GPU: 
 
-Initial testing: 
-* Perlmutter A100 kokkos: `Performance: 1.373 ns/day, 17.476 hours/ns, 31.790 timesteps/s` **= 3s**
-* Cirrus V100 kokkos: `Performance: 1.011 ns/day, 23.741 hours/ns, 23.401 timesteps/s` **= 6s** 
-* Cirrus V100 Cuda: `Performance: 0.002 ns/day, 10271.252 hours/ns, 0.054 timesteps/s, 3.545 katom-step/s` **= 31 mins** 
-
-Cuda build is significantly slower. Due to the pair_style chosen by the benchmark, we aren't able to offload the building of neighbour lists to the GPU without using kokkos.  
-
-> :warning: **Issue with the benchmark**: Appears we have to use Kokkos to be performant.
-
-<!-- Strong scaling kokkos with 1, 2, 4, 8 GPUs 
-I can't run anything else on Cirrus because I am running the MLPerf and my allowance it used
--->
+Initial testing using the `nano` input: 
+* Perlmutter 1xA100 **Kokkos** = 3s (`Performance: 1.373 ns/day, 17.476 hours/ns, 31.790 timesteps/s`)
+* Cirrus 1xV100 **Kokkos** = 6s (`Performance: 1.011 ns/day, 23.741 hours/ns, 23.401 timesteps/s`)
+* Cirrus 1xV100 **CUDA** = 31 mins (`Performance: 0.002 ns/day, 10271.252 hours/ns, 0.054 timesteps/s, 3.545 katom-step/s`)
 
 
-### Comparing Kokkos vs CUDA: 
+### Acceleration in LAMMPS: 
 
-Planning to use a different example (ethanol) which uses a more standard pair_style to test the performance of kokkos vs cuda. Prove that the above issue is due to the neighbour list/newton pairing causing a slow down.  
+Lammps offers GPU and Kokkos packages to support GPU acceleration. 
 
-<!-- <img src="gp_cirrus_module_gpu_nano.png" width="500">  
+The GPU package (compiled for CUDA or OpenCL) only accelerates pair force, neighbor list, and (parts of) PPPM calculations, whereas the Kokkos package attempts to run most of the calculation on the GPU. The GPU package requires neighbor lists to be built on the CPU, which can cause a significant slowdown. 
+
+Perlmutter uses the Kokkos package, and utilises features which are not available with the GPU package. Cirrus module uses the GPU package, built for CUDA, and thus we aren't able to offload as much work to the GPU. 
+
+> :warning: **Potential issue with the benchmark**: If we want to use this benchmark, we will need to use Kokkos for performance. 
+
+
+</br>
+
+### Comparing Kokkos to CUDA: 
+
+Tests from the [hpc-uk repo](https://github.com/hpc-uk/build-instructions/tree/main/apps/LAMMPS/tests) use standard features available to both Kokkos and CUDA. 
+
+> :warning: **Ongoing...** Attempting to build with Kokkos on Cirrus. Build on the login nodes is so slow it is not possible. Build on the compute nodes also not currently possible because cmake can't find eigen and attempts to build. 
+
+<!-- 
+Small tests to prove that the above issue is due to the neighbour list/newton pairing causing a slow down.  
+
+Then run duplicate GPU tests on the ethanol example 
+How does it scale? 
+Strong scaling kokkos with 1, 2, 4, 8 GPUs 
+Weak? 
+
+### Results: 
+ <img src="gp_cirrus_module_gpu_nano.png" width="500">  
 
 ##### Fig 4. Strong scaling of the nano benchmark on Cirrus using the centralised module.  
  
@@ -106,3 +120,29 @@ Planning to use a different example (ethanol) which uses a more standard pair_st
 4 GPU: 5571339 - 0:06:58
 8 GPU: 5571367 - 0:03:24
 -->
+
+
+</br>
+
+## ARCHER2 GPU: 
+
+**Built for AMD/ROCM using Kokkos and HIP.**
+
+Initial testing using the `nano` input: 
+* Perlmutter 1xA100 **Kokkos** = 3s (`Performance: 1.373 ns/day, 17.476 hours/ns, 31.790 timesteps/s`)
+* Cirrus 1xV100 **Kokkos** = 6s (`Performance: 1.011 ns/day, 23.741 hours/ns, 23.401 timesteps/s`)
+* ARCHER2 1xMI210 **Kokkos** = 11s (`Performance: 0.604 ns/day, 39.761 hours/ns, 13.973 timesteps/s, 915.702 katom-step/s`)
+
+
+### Comparing to ARCHER2 CPU: 
+
+
+<img src="results/gp_strong_a2_cpu_cpu_33.6Matoms.png" width="500"> 
+
+##### Fig 3. Strong scaling speed-up of the 33.6M atom (small) benchmark on ARCHER2 CPU nodes. 
+
+<img src="results/gp_strong_a2_cpu_cpu_33.6Matoms_speedup.png" width="500"> 
+
+##### Fig 4. Speed-up. 
+
+</br>

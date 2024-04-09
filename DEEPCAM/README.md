@@ -3,6 +3,10 @@ DeepCAM:
 
 DeepCAM trains a deep learning model to identify extreme weather phenomena in CAM5 simulation data. This case has particular relevance to HPC because it uses high resolution (768x1152) scientific images produced from HPC simulations that have more channels (16) than are typically found in commercial use-cases (3 channels for RGB images).
 
+Datasets: 
+* Mini - 64GB
+* Full - 8.8TB 
+
 ## NERSC-10 Benchmark 
 
 NERSC provide their [own implementation](https://gitlab.com/NERSC/N10-benchmarks/deepcam) with minor modifications to the MLPerf HPC implementation, provides hyperparameter settings (e.g. define a required batch size, learning rate) which must be used for baseline submissions. Submissions are trained to IOU > 0.80, but benchmark performance is evaluated using **time to complete 16 training epochs**. 
@@ -56,7 +60,6 @@ Calculations:
 ```bash 
 local_batch_size = global_batch_size/num_gpus 
 local_batch_size = (global_batch_size/num_gpus)/grad_accum_freq 
-
 ```
 
 > NERSC-10 requires submissions to use a global batch size of 2048. 
@@ -70,7 +73,7 @@ NERSC-10 define a global batch size of 2048. The maximum number of GPUs in a sin
 We can use a gradient accumulation frequency of 16 and a local batch size of 2 to achieve the desired global batch size. Note: changing the gradient accumulation frequency is also not allowed under the NERSC-10 rules.
 
 
-### Results: 
+### Results: Full  
 
 <!-- Submitted on Cirrus: `/work/z04/z04/ebroadwa/benchmarks/deepcam/hpc/deepcam/src/deepCam`
 * Full dataset 
@@ -91,15 +94,16 @@ We can use a gradient accumulation frequency of 16 and a local batch size of 2 t
 
 <!-- Note: Timing from the start of epoch 1 to the end of epoch 16.  -->
 
-Note: none of them are converging... So these parameters **do not** work for training on Cirrus. 
+Note: none of them are converging... So these parameters **do not** work for training on Cirrus at this scale. 
 
 > :warning: Not clear how changing the global batch size will affect the performance, based on the other fixed hyperparameters. This could be investigated by tuning the hyperparameters to our target architectures, instead of using the NERSC-10 defaults. 
 
 
-Increasing the batch size has made the per-epoch time slower. Not sure about convergence as it crashed early 
+### Results: Mini 
 
+> :warning: Does not converge when using the NERSC-10 parameters.
 
-
+DeepCAM quality target (0.82 intersection over union (IoU)) is met at epoch 35 when using default parameters. However, when using the NERSC-10 specification, we reach max epochs (64) without converging. 
 
 
 
@@ -112,7 +116,7 @@ NERSC-10 define a global batch size of 2048. If we follow the NUMA architecture 
 See the [submission script](scripts/run_deepcam_archer2_cpu.sh) for final list of hyperparameters. 
 
 
-> **Preliminary results: average epoch takes 58 mins**
+> **Preliminary results: average epoch takes 58 mins, not converging with chosen hyperparameters**
 
 
 <!-- 
@@ -141,7 +145,8 @@ See [instructions](scripts/build_pytorch_archer2_gpu.md) for building PyTorch fo
 Using the mini dataset to demonstrate capability on the ARCHER2 GPUs.
 
 
-<!-- 6232649: 1 GPU - 10 epochs - 30:28 
+<!-- 
+6232649: 1 GPU - 10 epochs - 30:28 
 
 6230697: 2 GPU - 10 epochs - 00:17:41 (shared)
 6235641: 2 GPU - 10 epochs - 00:17:49 (exclusive)
@@ -154,24 +159,20 @@ Using the mini dataset to demonstrate capability on the ARCHER2 GPUs.
 
 6092327: 8 GPUs - 10 epochs - 00:08:54 
 09:15
- -->
+-->
 
+<img src="results/deepcam_mini_archer2_gpu.png" width="500"> 
+
+##### Fig 1. Strong scaling speed-up of the mini (61GB) DeepCAM dataset on ARCHER2 GPU nodes. 
+
+Demonstrating multi-node capability. Data loading is a bottleneck for DeepCAM, especially with the reference MLPerf benchmark. 
 
 <!-- Max on ARCHER2? 
 8 GPUs and 1 hour.  -->
 
 
 # Summary: 
-<!-- 
-Demonstrated that this workload can run on all [listed hardware](../README.md) and run at a largescale relevant for exascale HPC systems. 
 
-However, AI "benchmarks" are tricky to define due to the hyperparameters. 
-Choose appropriate hyperparameters is not trivial.
+Demonstrated that this workload can run on all [listed hardware](../README.md) and run at a scale relevant for exascale HPC systems. 
 
- If we want to truly measure the performance of a system for these types of workloads, we would need to tune for each architecture to ensure we reach convergence. Such investigations are time and resource consuming. 
-
- The level of effort this requires, will depend on if we care about throughput **or** accuracy of models. 
-
-Furthermore: base implementation or our own 
-Again, effort is increased 
-But there is evidence that the base implementation of deepcam really suffers under data loading.  -->
+However, convergence is **not** reached with the NERSC-10 hyperparameters. We can use this benchmark simply for demonstrating capability/throughput (i.e. ignoring convergence and accuracy) but achieving accuracy will require time and resources to either decide on platform-agnostic hyperparamters or to tune for each system. 
