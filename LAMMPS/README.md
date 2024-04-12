@@ -7,12 +7,13 @@ MD workflows, simulated using LAMMPS, accelerate each time-step by distributing 
 
 This benchmark simulates the high-pressure BC8 phase of carbon using Spectral Neighbour Analysis Potential (SNAP). 
 
-
 ### Parallel decomposition: 
 LAMMPS uses a 3D spatial domain decomposition to distribute atoms amongst MPI processes. The default decomposition divides the simulated space into rectangular bricks. 
 
+</br>
+
 ## NERSC-10 Benchmark: 
-* Input files/batch scripts/Perlmutter outputs for 7 different problem sizes. 
+* Includes input files/batch scripts/Perlmutter reference outputs for 7 different problem sizes. 
 * The collection forms a weak scaling series where each step is 8 x bigger than the previous. 
 
 | Size (atoms)     |  #PM GPU nodes | Total Mem(GB) | #BenchmarkTime(sec) |
@@ -60,10 +61,6 @@ Naive results (i.e copying Perlmutter's balance of 64 tasks-per-node with 2 cpus
 
 ##### Fig 1. Strong scaling speed-up of the 33.6M atom (small) benchmark on ARCHER2 CPU nodes. 
 
-<!-- <img src="weak_a2_cpu_64taskspernode.png" width="500"> 
-
-##### Fig 2. weak scaling of lammps on ARCHER2 CPU nodes.  -->
-
 <img src="results/weak_a2_cpu_64taskspernode_efficiency.png" width="500"> 
 
 ##### Fig 2. Weak scaling efficiency. 
@@ -75,13 +72,7 @@ Results show this suite of inputs is suitable for benchmarking LAMMPS on CPUs as
 </br>
 
 
-## Cirrus GPU: 
-
-Initial testing using the `nano` input: 
-* Perlmutter 1xA100 **Kokkos** = 3s (`Performance: 1.373 ns/day, 17.476 hours/ns, 31.790 timesteps/s`)
-* Cirrus 1xV100 **Kokkos** = 6s (`Performance: 1.011 ns/day, 23.741 hours/ns, 23.401 timesteps/s`)
-* Cirrus 1xV100 **CUDA** = 31 mins (`Performance: 0.002 ns/day, 10271.252 hours/ns, 0.054 timesteps/s, 3.545 katom-step/s`)
-
+## GPU: 
 
 ### Acceleration in LAMMPS: 
 
@@ -93,56 +84,43 @@ Perlmutter uses the Kokkos package, and utilises features which are not availabl
 
 > :warning: **Potential issue with the benchmark**: If we want to use this benchmark, we will need to use Kokkos for performance. 
 
-
 </br>
 
-### Comparing Kokkos to CUDA: 
+### Cirrus: 
 
-Tests from the [hpc-uk repo](https://github.com/hpc-uk/build-instructions/tree/main/apps/LAMMPS/tests) use standard features available to both Kokkos and CUDA. 
+Built for [NVIDIA using Kokkos and Cuda](scripts/build_lammps_kokkos_cirrus_gpu.sh).
 
-> :warning: **Ongoing...** Attempting to build with Kokkos on Cirrus. Build on the login nodes is so slow it is not possible. Build on the compute nodes also not currently possible because cmake can't find eigen and attempts to build. 
-
-<!-- 
-Small tests to prove that the above issue is due to the neighbour list/newton pairing causing a slow down.  
-
-Then run duplicate GPU tests on the ethanol example 
-How does it scale? 
-Strong scaling kokkos with 1, 2, 4, 8 GPUs 
-Weak? 
-
-### Results: 
- <img src="gp_cirrus_module_gpu_nano.png" width="500">  
-
-##### Fig 4. Strong scaling of the nano benchmark on Cirrus using the centralised module.  
- 
-1 GPU: 5571831 - 0:31:18
-2 GPU: 5571345 - 0:13:34
-4 GPU: 5571339 - 0:06:58
-8 GPU: 5571367 - 0:03:24
--->
+Initial testing using the `nano` input: 
+* Perlmutter 1xA100 **Kokkos** = 3s (`Performance: 1.373 ns/day, 17.476 hours/ns, 31.790 timesteps/s`)
+* Cirrus 1xV100 **Kokkos** = 6s (`Performance: 1.011 ns/day, 23.741 hours/ns, 23.401 timesteps/s`)
+* Cirrus 1xV100 **CUDA** = 31 mins (`Performance: 0.002 ns/day, 10271.252 hours/ns, 0.054 timesteps/s, 3.545 katom-step/s`)
 
 
-</br>
+### ARCHER2: 
 
-## ARCHER2 GPU: 
-
-**Built for AMD/ROCM using Kokkos and HIP.**
+Built for [AMD/ROCM using Kokkos and HIP](scripts/build_lammps_archer2_gpu.sh).
 
 Initial testing using the `nano` input: 
 * Perlmutter 1xA100 **Kokkos** = 3s (`Performance: 1.373 ns/day, 17.476 hours/ns, 31.790 timesteps/s`)
 * Cirrus 1xV100 **Kokkos** = 6s (`Performance: 1.011 ns/day, 23.741 hours/ns, 23.401 timesteps/s`)
 * ARCHER2 1xMI210 **Kokkos** = 11s (`Performance: 0.604 ns/day, 39.761 hours/ns, 13.973 timesteps/s, 915.702 katom-step/s`)
 
-
-### Comparing to ARCHER2 CPU: 
-
+</br>
 
 <img src="results/gp_strong_a2_cpu_cpu_33.6Matoms.png" width="500"> 
 
-##### Fig 3. Strong scaling speed-up of the 33.6M atom (small) benchmark on ARCHER2 CPU nodes. 
+##### Fig 3. Comparing the strong scaling speed-up of the 33.6M atom (small) benchmark on ARCHER2 CPU and GPU nodes. 
 
 <img src="results/gp_strong_a2_cpu_cpu_33.6Matoms_speedup.png" width="500"> 
 
 ##### Fig 4. Speed-up. 
 
 </br>
+
+
+
+## Next steps: Comparing Kokkos to CUDA: 
+
+Do we want to use a benchmark which forces the use of the LAMMPS kokkos package (rather than optionally using either GPU or kokkos)? 
+
+Tests from the [hpc-uk repo](https://github.com/hpc-uk/build-instructions/tree/main/apps/LAMMPS/tests) use standard features available to both Kokkos and CUDA. See `/work/z04/shared/lammps` for the relevant input files and submission scrips, and [here](scripts/build_lammps_kokkos_cirrus_gpu.sh) for build instructions. 
