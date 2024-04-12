@@ -1,11 +1,12 @@
-# Building PyTorch from source on Cirrus
+# Building PyTorch from source on Cirrus GPU 
+
 Instructions adapted from [Chris Rae's](https://github.com/EPCCed/chris-ml-intern/blob/main/HOW_TO/build_torch/cirrus.md). 
 
 
 ## Setup Miniconda
 
 ```bash
-PRFX=/work/d183/d183/eleanor-d183
+PRFX=/work/z04/z04/ebroadwa
 cd $PRFX
 
 # wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh
@@ -29,15 +30,17 @@ module load openmpi/4.1.6-cuda-11.6
 ```
 
 ## Download Torch
+
 ```bash
-cd $PRFX/gpu-build
+cd $PRFX/ai4nz/gpu-build
 git clone --single-branch --branch release/2.0 https://github.com/pytorch/pytorch.git
 cd pytorch
 git submodule sync
 git submodule update --init --recursive
 ```
 
-## Install Dependancies
+## Install dependencies
+
 ```bash
 source $PRFX/miniconda3/bin/activate mlperf-torch
 
@@ -79,7 +82,7 @@ python setup.py develop
 
 ## Clean up
 ```bash
-source $PREFIX/miniconda/bin/activate build-torch
+source $PRFX/miniconda3/bin/activate mlperf-torch
 conda uninstall -c "nvidia/label/cuda-11.6.0" cuda-toolkit
 conda uninstall -c nvidia cudatoolkit=11.6
 conda uninstall -c nvidia cudnn
@@ -92,7 +95,7 @@ conda install nvidia/label/cuda-11.6.0::cuda-cupti
 ## Test
 ```bash
 srun --nodes=1 --time=01:30:00 --partition=gpu --qos=gpu --gres=gpu:1 --account=[CODE] --pty /usr/bin/bash --login
-source $PREFIX/miniconda/bin/activate build-torch
+source $PRFX/miniconda3/bin/activate mlperf-torch
 module load openmpi/4.1.5-cuda-11.6
 module load nvidia/nvhpc/22.11 nvidia/cudnn/8.6.0-cuda-11.6 nvidia/tensorrt/8.4.3.1-u2
 python
@@ -106,86 +109,3 @@ True
 >>> exit()
 ```
 If both don't return True the install has gone wrong in the setup.py stage
-
-
--------------------
-
-
-## Example submission script for NCCL: 
-```bash 
-#!/bin/bash
-
-#SBATCH --job-name=mlperf-deepcam-benchmark
-#SBATCH --time=02:00:00
-#SBATCH --exclusive
-#SBATCH --nodes=1 #MAKE SURE TO UPDATE SRUN
-
-#SBATCH --partition=gpu
-#SBATCH --qos=gpu
-#SBATCH --gres=gpu:4
-#SBATCH --account=d183
-
-cat $0 
-
-eval "$(/work/d183/d183/eleanor-d183/miniconda3/bin/conda shell.bash hook)"
-conda activate mlperf-torch
-
-module load openmpi/4.1.5-cuda-11.6
-module load nvidia/cudnn/8.9.4-cuda-11.6  
-
-export OMPI_MCA_mpi_warn_on_fork=0
-
-export SRUN_CPUS_PER_TASK=${SLURM_CPUS_PER_TASK}
-export OMP_NUM_THREADS=10
-
-nvidia-smi --loop=10 --filename=smi-${SLURM_JOBID}.txt &
-
-time srun --ntasks=4 --tasks-per-node=4 python train.py \
-        --wireup_method "nccl-slurm" \
-        --run_tag i_wish_this_stupid_thing_worked \
-        --data_dir_prefix /work/z04/shared/mlperf-hpc/deepcam/mini/deepcam-data-n512/ \
-        --output_dir /work/d183/d183/eleanor-d183/output/$SLURM_JOB_ID \
-        --local_batch_size 1 \
-        --max_epochs 10 \
-
-```
-
-## Example submission script for MPI (only works within a node): 
-
-```bash 
-#!/bin/bash
-
-#SBATCH --job-name=mlperf-deepcam-benchmark
-#SBATCH --time=02:00:00
-#SBATCH --exclusive
-#SBATCH --nodes=1 #MAKE SURE TO UPDATE SRUN
-
-#SBATCH --partition=gpu
-#SBATCH --qos=gpu
-#SBATCH --gres=gpu:4
-#SBATCH --account=d183
-
-cat $0 
-
-eval "$(/work/d183/d183/eleanor-d183/miniconda3/bin/conda shell.bash hook)"
-conda activate build-new-torch
-
-module load openmpi/4.1.5-cuda-11.6
-
-export OMPI_MCA_mpi_warn_on_fork=0
-export SRUN_CPUS_PER_TASK=${SLURM_CPUS_PER_TASK}
-export OMP_NUM_THREADS=10
-
-# Without this, it doesn't work
-OMPI_MCA_pml=ob1
-
-nvidia-smi --loop=10 --filename=smi-${SLURM_JOBID}.txt &
-
-time srun --ntasks=4 --tasks-per-node=4 python train.py \
-        --wireup_method "mpi" \
-        --run_tag i_wish_this_stupid_thing_worked \
-        --data_dir_prefix /work/z04/shared/mlperf-hpc/deepcam/mini/deepcam-data-n512/ \
-        --output_dir /work/d183/d183/eleanor-d183/output/$SLURM_JOB_ID \
-        --local_batch_size 1 \
-        --max_epochs 5 \
-```
